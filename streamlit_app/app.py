@@ -2,7 +2,7 @@
 Indonesia's Renewable Energy Transition: An Exploratory Data Analysis of
 Progress and Challenges  |  SDG 7: Affordable and Clean Energy
 
-Streamlit dashboard untuk hasil EDA (Data Mining and Visualization, Class LD09).
+Streamlit dashboard untuk hasil EDA 
 Sumber data: Handbook of Energy and Economic Statistics of Indonesia 2024 (ESDM).
 """
 
@@ -14,9 +14,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-# ----------------------------------------------------------------------------
 # 1. KONFIGURASI HALAMAN & KONSTANTA
-# ----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Indonesia Renewable Energy Transition",
     page_icon="⚡",
@@ -27,7 +25,6 @@ st.set_page_config(
 DATA_PATH = Path(__file__).parent / "data" / "cleaned_dataset.csv"
 TEMPLATE = "plotly_white"
 
-# Palet warna konsisten dengan notebook EDA
 C = {
     "coal": "#2C3E50", "gas": "#E67E22", "hsd": "#7F8C8D", "fo": "#C0392B",
     "bio": "#27AE60", "on": "#2980B9", "off": "#27AE60", "own": "#2C3E50",
@@ -35,7 +32,6 @@ C = {
     "gdp": "#9B59B6", "energy": "#E67E22", "co2": "#E74C3C",
 }
 
-# Kolom bahan bakar pembangkit (Viz 1) -> (label, warna)
 FUELS = {
     "coal_mtoe": ("Coal (Batu Bara)", C["coal"]),
     "gas_mtoe": ("Gas", C["gas"]),
@@ -44,7 +40,6 @@ FUELS = {
     "biofame_mtoe": ("Biofame (Biofuel)", C["bio"]),
 }
 
-# Indikator utama yang bisa dipilih di Interactive Insights -> label tampilan
 INDICATORS = {
     "coal_share": "Coal share in PP fuel mix (%)",
     "re_share": "Biofame / renewable share (%)",
@@ -62,9 +57,7 @@ INDICATORS = {
 }
 
 
-# ----------------------------------------------------------------------------
-# 2. LOAD & PREPARE DATA (di-cache supaya cepat)
-# ----------------------------------------------------------------------------
+# 2. LOAD & PREPARE DATA 
 @st.cache_data(show_spinner="Loading dataset...")
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Baca dataset gabungan, bersihkan duplikat, dan hitung kolom turunan.
@@ -75,9 +68,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     df  : raw + kolom turunan yang dipakai untuk visualisasi
     """
     raw = pd.read_csv(DATA_PATH, sep=";")
-    # Nama kolom dari Excel kadang mengandung newline
     raw.columns = [str(c).replace("\n", " ").strip() for c in raw.columns]
-    # Hasil merge notebook menyisakan baris 2024 ganda -> buang
     raw = raw.drop_duplicates(subset="Year").sort_values("Year").reset_index(drop=True)
 
     df = raw.copy()
@@ -88,7 +79,6 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     df["buy_twh"] = df["Purchase_Sub_Total"] / 1e3
     df["offgrid_pct"] = (df["Total_Off_Grid"] / df["Grand_Total"] * 100).where(df["Total_Off_Grid"] > 0)
     df["purchase_pct"] = df["Purchase_Sub_Total"] / df["Total_OnGrid"] * 100
-    # YoY dihitung pada data penuh agar tahun pertama hasil filter tetap valid
     df["coal_yoy"] = df["coal_mt"].pct_change() * 100
     df["co2_mt"] = df["Energy"] / 1e3  # Gg -> Mt
     df["energy_mboe"] = df["Final Energy Consumption (Thousand BOE)"] / 1e3
@@ -111,9 +101,7 @@ def fmt_delta(new: float, old: float, unit: str = "", digits: int = 1) -> str:
     return f"{new - old:+.{digits}f}{unit}"
 
 
-# ----------------------------------------------------------------------------
 # 3. KOMPONEN VISUALISASI (satu fungsi per grafik EDA)
-# ----------------------------------------------------------------------------
 def style(fig: go.Figure, height: int = 480) -> go.Figure:
     fig.update_layout(
         template=TEMPLATE, height=height, hovermode="x unified",
@@ -124,7 +112,6 @@ def style(fig: go.Figure, height: int = 480) -> go.Figure:
             font=dict(size=12), tracegroupgap=4,
         ),
     )
-    # Atur judul hanya bila grafik punya judul (grafik subplot memakai subplot_titles)
     if fig.layout.title.text:
         fig.update_layout(title=dict(
             x=0, xanchor="left", y=0.96, yanchor="top",
@@ -267,9 +254,7 @@ def viz7_energy_vs_gdp(d: pd.DataFrame) -> tuple[go.Figure, float | None]:
     return style(fig, 500), r2
 
 
-# ----------------------------------------------------------------------------
 # 4. SIDEBAR: NAVIGASI + FILTER GLOBAL
-# ----------------------------------------------------------------------------
 raw, df = load_data()
 y_min, y_max = int(df["Year"].min()), int(df["Year"].max())
 
@@ -286,7 +271,6 @@ with st.sidebar:
     year_range = st.slider("Year range", y_min, y_max, (y_min, y_max))
     st.caption("The year filter applies to every page.")
 
-# Data tersaring (dipakai oleh semua halaman)
 dff = df[df["Year"].between(*year_range)].reset_index(drop=True)
 raw_f = raw[raw["Year"].between(*year_range)].reset_index(drop=True)
 
@@ -297,9 +281,7 @@ if dff.empty:
 first, last = dff.iloc[0], dff.iloc[-1]
 
 
-# ----------------------------------------------------------------------------
 # 5. HALAMAN 1: OVERVIEW & DATASET
-# ----------------------------------------------------------------------------
 def page_overview():
     st.title("Indonesia's Renewable Energy Transition")
     st.markdown(
@@ -313,7 +295,6 @@ def page_overview():
         "Data come from the *Handbook of Energy and Economic Statistics of Indonesia 2024* (ESDM)."
     )
 
-    # Kartu ringkasan
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total rows", f"{len(raw_f)}", help="One row per year after removing duplicates")
     c2.metric("Total columns", f"{raw.shape[1]}", help="Columns in the merged cleaned dataset")
@@ -377,9 +358,7 @@ def page_overview():
         )
 
 
-# ----------------------------------------------------------------------------
 # 6. HALAMAN 2: EXPLORATORY DATA ANALYSIS (7 tab)
-# ----------------------------------------------------------------------------
 def page_eda():
     st.title("Exploratory Data Analysis")
     st.caption(f"Showing {int(first['Year'])}–{int(last['Year'])}. Hover, zoom and click legend items to explore.")
@@ -478,9 +457,7 @@ def page_eda():
         st.caption("Correlation does not prove causation; with ~11 yearly points treat R² as descriptive.")
 
 
-# ----------------------------------------------------------------------------
-# 7. HALAMAN 3: INTERACTIVE INSIGHTS (filter dinamis + eksplorasi bebas)
-# ----------------------------------------------------------------------------
+# 7. HALAMAN 3: INTERACTIVE INSIGHTS 
 def page_insights():
     st.title("Interactive Insights")
     st.caption("Pick indicators, compare years and export what you see.")
@@ -488,7 +465,6 @@ def page_insights():
     labels = list(INDICATORS.values())
     inv = {v: k for k, v in INDICATORS.items()}
 
-    # Filter tambahan di sidebar khusus halaman ini
     with st.sidebar:
         st.subheader("Insight filters")
         chosen_labels = st.multiselect("Indicators to plot", labels,
@@ -496,7 +472,6 @@ def page_insights():
         normalise = st.checkbox("Index to 100 at start year", value=True,
                                 help="Makes indicators with different units comparable.")
 
-    # --- Bagian A: tren indikator
     st.subheader("A. Compare indicators over time")
     if not chosen_labels:
         st.info("Choose at least one indicator in the sidebar.")
@@ -511,7 +486,6 @@ def page_insights():
                           xaxis=dict(dtick=1))
         st.plotly_chart(style(fig, 440), width="stretch")
 
-    # --- Bagian B: scatter bebas + regresi
     st.subheader("B. Relationship explorer")
     cx, cy = st.columns(2)
     x_lab = cx.selectbox("X axis", labels, index=labels.index(INDICATORS["gdp"]))
@@ -537,7 +511,6 @@ def page_insights():
     else:
         st.info("Not enough overlapping data points in this range to fit a trend.")
 
-    # --- Bagian C: bandingkan dua tahun
     st.subheader("C. Compare two years")
     years = dff["Year"].astype(int).tolist()
     ca, cb = st.columns(2)
@@ -553,7 +526,6 @@ def page_insights():
     comp["Change (%)"] = np.where(comp[str(ya)].fillna(0) != 0, comp["Change"] / comp[str(ya)] * 100, np.nan)
     st.dataframe(comp.round(2), width="stretch", hide_index=True)
 
-    # --- Bagian D: data tersaring + download
     st.subheader("D. Filtered data")
     cols = [inv[l] for l in labels]
     out = dff[["Year"] + cols].rename(columns=INDICATORS)
@@ -565,7 +537,6 @@ def page_insights():
     d2.download_button("⬇️ Download full merged data (CSV)", raw_f.to_csv(index=False).encode("utf-8"),
                        file_name=f"full_dataset_{year_range[0]}_{year_range[1]}.csv", mime="text/csv")
 
-    # --- Kesimpulan dinamis
     st.subheader("What the selected range says")
     st.success(
         f"Between **{int(first['Year'])}** and **{int(last['Year'])}**, coal's share of power-plant fuel changed by "
@@ -575,9 +546,7 @@ def page_insights():
     )
 
 
-# ----------------------------------------------------------------------------
 # 8. ROUTER & FOOTER
-# ----------------------------------------------------------------------------
 {
     "Overview & Dataset": page_overview,
     "Exploratory Data Analysis": page_eda,
