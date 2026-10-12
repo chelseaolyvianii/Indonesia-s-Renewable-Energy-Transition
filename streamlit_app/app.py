@@ -556,5 +556,4 @@ def page_insights():
 st.sidebar.divider()
 st.sidebar.caption(
     "Source: ESDM, *Handbook of Energy and Economic Statistics of Indonesia 2024*.  \n"
-    "Team LD09: Chelsea O. Purnomo · Raynaldo W. A. Kusuma · Wa Ode A. F. Rajab"
 )
